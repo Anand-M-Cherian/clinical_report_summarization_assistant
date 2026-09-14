@@ -86,6 +86,21 @@ grounding in the report itself. Splitting retrieval and generation into
 separate nodes (Section 3 of the spec) is what makes this per-component
 attribution possible.
 
+**Known limitation — `answer_relevancy` on the Recommendation agent.** The
+`question` column for this metric is the same keyword-soup query string
+`rag_agent` builds for retrieval (chief complaint + narrative + diagnoses +
+finding messages, space-joined), not a natural-language question. Ragas
+scores `answer_relevancy` by generating candidate questions from the answer
+and comparing their embedding similarity to the given `question` — a
+non-question reference string structurally depresses this score regardless
+of how relevant the recommendation actually is. A low `answer_relevancy`
+here should be weighed against `faithfulness`/`context_precision`/
+`context_recall` rather than read on its own; on the 5-case eval run it
+scored ~0.51 against a 0.6 threshold while the other three metrics all
+passed comfortably (faithfulness 0.75, context_precision/recall 1.0),
+consistent with this being a metric-construction artifact rather than a
+genuine relevance problem.
+
 ## Challenges faced
 
 - **Keeping critical findings out of any prose path.** The design explicitly

@@ -168,7 +168,11 @@ def render_evaluation_tab() -> None:
     averages = data.get("averages", {})
     cols = st.columns(len(averages) or 1)
     for col, (metric, value) in zip(cols, averages.items()):
-        threshold = THRESHOLDS.get(metric)
+        # "summary_faithfulness" (the Summary agent's own faithfulness score,
+        # kept separate from the Recommendation agent's "faithfulness" column)
+        # is checked against the same threshold as "faithfulness".
+        threshold_key = metric.removeprefix("summary_")
+        threshold = THRESHOLDS.get(threshold_key)
         passed = threshold is not None and value >= threshold
         badge = "✅ PASS" if passed else "❌ FAIL"
         col.metric(label=f"{metric} ({badge})", value=f"{value:.2f}")

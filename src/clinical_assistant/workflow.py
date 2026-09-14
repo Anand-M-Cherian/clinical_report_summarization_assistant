@@ -188,6 +188,12 @@ def make_recommendation_agent():
                 msg = (
                     f"recommendation_agent: LLM call failed after retries: {exc}"
                 )
+                # state["errors"] is intentionally left unpopulated here: a
+                # LangGraph node can't both return a partial state update and
+                # raise in the same execution. observer.trace() above already
+                # logs this failure durably (status="error", full exception
+                # detail) to data/runtime/observability.db — that SQLite log
+                # is the authoritative failure record for this path.
                 raise RuntimeError(msg) from exc
             return {"recommendation": result.model_dump()}
 
@@ -209,6 +215,12 @@ def make_summary_agent():
                 result: SummaryOutput = llm.invoke(prompt)
             except Exception as exc:
                 msg = f"summary_agent: LLM call failed after retries: {exc}"
+                # state["errors"] is intentionally left unpopulated here: a
+                # LangGraph node can't both return a partial state update and
+                # raise in the same execution. observer.trace() above already
+                # logs this failure durably (status="error", full exception
+                # detail) to data/runtime/observability.db — that SQLite log
+                # is the authoritative failure record for this path.
                 raise RuntimeError(msg) from exc
             return {"summary": result.model_dump()}
 

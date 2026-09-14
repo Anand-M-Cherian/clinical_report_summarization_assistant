@@ -19,12 +19,12 @@ from ragas.metrics import (
 )
 from ragas.run_config import RunConfig
 
-# The Gemini free tier caps gemini-2.5-flash at 5 requests/minute, and ragas
-# fires many judge calls per row (faithfulness alone decomposes the answer
-# into statements, then verifies each one). Force fully sequential judge
-# calls with generous retry/backoff so the run fits within that quota
-# instead of exhausting retries and returning NaN scores.
-RAGAS_RUN_CONFIG = RunConfig(max_workers=1, max_retries=20, max_wait=90, timeout=300)
+# Tuned for a PAID gemini-2.5-flash tier, not the free tier. The free tier's
+# 5 requests/minute cap needed max_workers=1 with a long, patient backoff
+# (max_retries=20, max_wait=90) to avoid exhausting retries and returning
+# NaN scores; billing removes that per-minute ceiling, so moderate
+# concurrency and a normal retry budget are enough here.
+RAGAS_RUN_CONFIG = RunConfig(max_workers=4, max_retries=5, max_wait=90, timeout=300)
 
 from clinical_assistant.config import settings
 from clinical_assistant.rag import EMBEDDING_MODEL_NAME
@@ -98,15 +98,39 @@ def _build_recommendation_dataset(cases: list[dict], runs: list[dict]) -> Datase
     return Dataset.from_dict(rows)
 
 
+def _report_context_chunks(report: dict, clinical_findings: list[dict]) -> list[str]:
+    """All fields summary_agent's own prompt is grounded in (the full report
+    JSON, per SUMMARY_PROMPT in workflow.py), broken into per-field chunks
+    rather than the report's narrative/chief_complaint alone — otherwise
+    ragas' faithfulness check has no way to see the source for true
+    statements like the author's name or a listed medication, and marks
+    them unsupported even though they're straight from the report.
+    """
+    chunks = [
+        f"Report ID: {report.get('report_id', '')}",
+        f"Patient ID: {report.get('patient_id', '')}",
+        f"Report type: {report.get('report_type', '')}",
+        f"Encounter date: {report.get('encounter_date', '')}",
+        f"Author: {report.get('author', '')}",
+        f"Chief complaint: {report.get('chief_complaint', '')}",
+        f"History: {report.get('history', '')}",
+        f"Narrative: {report.get('narrative', '')}",
+        f"Diagnoses: {', '.join(report.get('diagnoses', []))}",
+        f"Medications: {', '.join(report.get('medications', []))}",
+        f"Allergies: {', '.join(report.get('allergies', []))}",
+        f"Follow-up: {report.get('follow_up', '')}",
+    ]
+    chunks.extend(f["message"] for f in clinical_findings)
+    return chunks
+
+
 def _build_summary_dataset(runs: list[dict]) -> Dataset:
     rows = {"question": [], "answer": [], "contexts": []}
     for run in runs:
-        report = run["report"]
         rows["question"].append("Summarize this clinical report factually.")
         rows["answer"].append(run["summary"]["report_summary"])
         rows["contexts"].append(
-            [report.get("narrative", ""), report.get("chief_complaint", "")]
-            + [f["message"] for f in run["clinical_findings"]]
+            _report_context_chunks(run["report"], run["clinical_findings"])
         )
     return Dataset.from_dict(rows)
 
@@ -125,7 +149,11 @@ def _print_table(title: str, per_case_scores: list[dict]) -> None:
 def _print_verdicts(title: str, averages: dict[str, float]) -> None:
     print(f"\n=== {title} — averaged metrics vs. thresholds ===")
     for metric, value in averages.items():
-        threshold = THRESHOLDS.get(metric)
+        # "summary_faithfulness" (the Summary agent's own faithfulness score,
+        # kept separate from the Recommendation agent's "faithfulness" column)
+        # is checked against the same threshold as "faithfulness".
+        threshold_key = metric.removeprefix("summary_")
+        threshold = THRESHOLDS.get(threshold_key)
         if threshold is None:
             continue
         verdict = "PASS" if value >= threshold else "FAIL"
@@ -204,15 +232,17 @@ def main() -> None:
     if "faithfulness" in summary_df.columns:
         averages["summary_faithfulness"] = float(summary_df["faithfulness"].mean())
 
+    recommendation_averages = {
+        k: v for k, v in averages.items() if k != "summary_faithfulness"
+    }
+    summary_averages = {
+        k: v for k, v in averages.items() if k == "summary_faithfulness"
+    }
+
     _print_table("Recommendation agent", recommendation_per_case)
     _print_table("Summary agent", summary_per_case)
-    _print_verdicts("Recommendation agent", averages)
-    if "summary_faithfulness" in averages:
-        print(
-            f"\nsummary agent faithfulness: {averages['summary_faithfulness']:.3f} "
-            f"(threshold {THRESHOLDS['faithfulness']}) -> "
-            f"{'PASS' if averages['summary_faithfulness'] >= THRESHOLDS['faithfulness'] else 'FAIL'}"
-        )
+    _print_verdicts("Recommendation agent", recommendation_averages)
+    _print_verdicts("Summary agent", summary_averages)
 
     RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
     RESULTS_PATH.write_text(

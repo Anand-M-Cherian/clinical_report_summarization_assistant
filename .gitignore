@@ -1,3 +1,10 @@
 .env
-.env.example
 .claude/
+
+__pycache__/
+*.pyc
+*.egg-info/
+
+.venv/
+
+data/runtime/
