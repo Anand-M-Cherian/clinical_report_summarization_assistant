@@ -69,15 +69,17 @@ def _run_case(graph, case: dict) -> dict:
 
     clinical_findings = state.get("clinical_findings", [])
     guideline_evidence = state.get("guideline_evidence", [])
-    recommendation = state["recommendation"]
-    summary = state["summary"]
+    # summary_agent/recommendation_agent now emit structured fields
+    # (overview + key_points/action_items), not a single string — the
+    # flattened text the eval judges against only exists post-reconciliation.
+    reconciled = state["reconciled_output"]
 
     return {
         "report": report,
         "clinical_findings": clinical_findings,
         "guideline_evidence": guideline_evidence,
-        "recommendation": recommendation,
-        "summary": summary,
+        "recommendation_text": reconciled["recommendation"],
+        "summary_text": reconciled["report_summary"],
     }
 
 
@@ -92,7 +94,7 @@ def _build_recommendation_dataset(cases: list[dict], runs: list[dict]) -> Datase
         rows["question"].append(
             _build_query(run["report"], run["clinical_findings"])
         )
-        rows["answer"].append(run["recommendation"]["recommendation"])
+        rows["answer"].append(run["recommendation_text"])
         rows["contexts"].append([e["text"] for e in run["guideline_evidence"]])
         rows["ground_truth"].append(case["ground_truth_recommendation"])
     return Dataset.from_dict(rows)
@@ -128,7 +130,7 @@ def _build_summary_dataset(runs: list[dict]) -> Dataset:
     rows = {"question": [], "answer": [], "contexts": []}
     for run in runs:
         rows["question"].append("Summarize this clinical report factually.")
-        rows["answer"].append(run["summary"]["report_summary"])
+        rows["answer"].append(run["summary_text"])
         rows["contexts"].append(
             _report_context_chunks(run["report"], run["clinical_findings"])
         )

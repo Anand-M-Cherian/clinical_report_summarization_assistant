@@ -32,7 +32,14 @@ def _sample_reports() -> list[Path]:
     return sorted(REPORTS_DIR.glob("*.json"))
 
 
-def _render_final_output(final_output: dict) -> None:
+def _split_finding(entry: str) -> tuple[str, str]:
+    if " Evidence: " in entry:
+        message, evidence = entry.split(" Evidence: ", 1)
+        return message.strip(), evidence.strip()
+    return entry.strip(), ""
+
+
+def _render_final_output(final_output: dict, full_state: dict) -> None:
     if final_output.get("status") == "needs_information":
         st.warning("Report is incomplete — additional information is required.")
         st.markdown("**Missing sections:**")
@@ -47,13 +54,39 @@ def _render_final_output(final_output: dict) -> None:
         st.markdown("**Clinician acknowledgment:**")
         st.json(ack)
     else:
+        report = full_state.get("report", {})
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Patient ID", report.get("patient_id", "—"))
+        col2.metric("Report type", report.get("report_type", "—"))
+        col3.metric("Encounter date", report.get("encounter_date", "—"))
+        if report.get("chief_complaint"):
+            st.caption(report["chief_complaint"])
+
         st.subheader("Report summary")
-        st.write(final_output.get("Report summary", ""))
+        with st.container(border=True):
+            st.markdown(final_output.get("Report summary", ""))
+
         st.subheader("Abnormal findings")
-        for item in final_output.get("Abnormal findings", []):
-            st.markdown(f"- {item}")
+        abnormal_findings = final_output.get("Abnormal findings", [])
+        if abnormal_findings:
+            rows = [_split_finding(entry) for entry in abnormal_findings]
+            st.dataframe(
+                [{"Finding": message, "Evidence": evidence} for message, evidence in rows],
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.caption("No abnormal findings.")
+
         st.subheader("Recommendation")
-        st.write(final_output.get("Recommendation", ""))
+        with st.container(border=True):
+            st.markdown(final_output.get("Recommendation", ""))
+
+        citations = full_state.get("recommendation", {}).get("guideline_citations")
+        if citations:
+            with st.expander("Guideline sources"):
+                for citation in citations:
+                    st.markdown(f"- {citation}")
 
 
 def render_run_report_tab() -> None:
@@ -70,6 +103,10 @@ def render_run_report_tab() -> None:
             report_dict = json.loads(uploaded.read().decode("utf-8"))
     else:
         report_dict = json.loads(Path(choice).read_text(encoding="utf-8"))
+
+    if report_dict is not None:
+        st.subheader("Report")
+        st.json(report_dict)
 
     thread_key = "thread_id"
     if thread_key not in st.session_state:
@@ -97,7 +134,7 @@ def render_run_report_tab() -> None:
                 }
             else:
                 st.session_state.pop("pending_interrupt", None)
-                _render_final_output(result["final_output"])
+                _render_final_output(result["final_output"], result)
 
     pending = st.session_state.get("pending_interrupt")
     if pending:
@@ -126,7 +163,7 @@ def render_run_report_tab() -> None:
                 st.error(f"Could not process acknowledgment: {exc}")
             else:
                 st.session_state.pop("pending_interrupt", None)
-                _render_final_output(result["final_output"])
+                _render_final_output(result["final_output"], result)
 
 
 def render_monitoring_tab() -> None:

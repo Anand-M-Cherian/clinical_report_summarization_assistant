@@ -101,6 +101,31 @@ passed comfortably (faithfulness 0.75, context_precision/recall 1.0),
 consistent with this being a metric-construction artifact rather than a
 genuine relevance problem.
 
+**Known limitation — `faithfulness` on the Recommendation agent is noisy
+between runs, even with `temperature=0` and a model that honors it.** With
+`gemini-3.6-flash` (which logs `UserWarning: ... the sampling parameter(s)
+temperature will be ignored` on every call, including the ragas judge's own
+claim-decomposition/verification calls), three consecutive eval runs scored
+0.710, 0.538, and 0.608 on identical code and reports — that swing was
+initially attributed to the judge ignoring `temperature=0`. Switching to
+`gemini-2.5-flash` (which does not log that warning) removed the run-to-run
+swing in the *aggregate* score, but a single case's score was still not
+reproducible: re-scoring the exact same `(question, answer, contexts)` tuple
+in isolation — the diabetes scenario, byte-for-byte identical input — gave
+0.25 inside a full eval run and 1.0 five minutes later on its own, with a
+LangChain-debug trace showing the same 8 decomposed statements as before
+(the decomposition step handles the imperative `action_items` bullets fine,
+turning "Review current medication dosing." into "Current medication dosing
+should be reviewed." on its own) — the *number of statements marked
+faithful* differed between the two calls. So the root cause is Gemini's
+`temperature=0` not being fully deterministic at the API level (plausibly
+floating-point non-associativity in batched inference, a known
+characteristic of several hosted LLM APIs) rather than anything about the
+prompt, the response's imperative phrasing, or actual grounding. Treat a
+single `faithfulness` result near the threshold as inconclusive; a spot-check
+against the retrieved `contexts` for the flagged case (or a second run) is
+more reliable than one score.
+
 ## Challenges faced
 
 - **Keeping critical findings out of any prose path.** The design explicitly
