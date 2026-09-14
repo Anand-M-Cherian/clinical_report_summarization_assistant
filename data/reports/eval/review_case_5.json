@@ -1,0 +1,17 @@
+{
+  "report_id": "EVAL-REVIEW-005",
+  "patient_id": "PT-2005",
+  "report_type": "Follow-up Visit",
+  "encounter_date": "2026-07-10",
+  "author": "Dr. Michael Chen",
+  "chief_complaint": "Unintentional weight gain and cold intolerance.",
+  "history": "No prior thyroid disease.",
+  "narrative": "Patient reports gradual unintentional weight gain and increased sensitivity to cold over the past two months, along with mild constipation. No chest pain or palpitations.",
+  "diagnoses": ["Suspected hypothyroidism"],
+  "labs": [
+    {"name": "TSH", "value": 8.5, "unit": "mIU/L", "reference_low": 0.4, "reference_high": 4.0, "critical_low": 0.01, "critical_high": 100.0}
+  ],
+  "medications": [],
+  "allergies": ["None known"],
+  "follow_up": "Order free T4 and repeat TSH in 4-6 weeks; consider endocrinology referral if confirmed."
+}

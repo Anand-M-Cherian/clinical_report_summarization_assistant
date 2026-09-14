@@ -1,0 +1,17 @@
+{
+  "report_id": "EVAL-REVIEW-003",
+  "patient_id": "PT-2003",
+  "report_type": "Follow-up Visit",
+  "encounter_date": "2026-07-05",
+  "author": "Dr. Angela Reyes",
+  "chief_complaint": "Fatigue and mild shortness of breath on exertion.",
+  "history": "No known chronic conditions. Vegetarian diet for 3 years.",
+  "narrative": "Patient reports gradually worsening fatigue and mild shortness of breath with exertion over the past month. No chest pain. Physical exam notable for pale conjunctiva.",
+  "diagnoses": ["Suspected iron-deficiency anemia"],
+  "labs": [
+    {"name": "Hemoglobin", "value": 10.5, "unit": "g/dL", "reference_low": 12.0, "reference_high": 16.0, "critical_low": 7.0, "critical_high": 20.0}
+  ],
+  "medications": [],
+  "allergies": ["None known"],
+  "follow_up": "Order iron studies and recheck hemoglobin in 4 weeks."
+}

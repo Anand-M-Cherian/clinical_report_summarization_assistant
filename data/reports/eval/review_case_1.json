@@ -1,0 +1,17 @@
+{
+  "report_id": "EVAL-REVIEW-001",
+  "patient_id": "PT-2001",
+  "report_type": "Follow-up Visit",
+  "encounter_date": "2026-07-01",
+  "author": "Dr. Michael Chen",
+  "chief_complaint": "Increased thirst and frequent urination for one week.",
+  "history": "Type 2 diabetes mellitus, diagnosed 2 years ago, on metformin.",
+  "narrative": "Patient reports increased thirst and frequent urination over the past week, with mild fatigue. No fever, no chest pain. Physical exam unremarkable aside from dry oral mucosa.",
+  "diagnoses": ["Type 2 diabetes mellitus"],
+  "labs": [
+    {"name": "Glucose", "value": 165, "unit": "mg/dL", "reference_low": 70, "reference_high": 99, "critical_low": 40, "critical_high": 500}
+  ],
+  "medications": ["Metformin 500mg twice daily"],
+  "allergies": ["None known"],
+  "follow_up": "Recheck fasting glucose in 2 weeks and review medication adherence."
+}

@@ -1,0 +1,19 @@
+{
+  "report_id": "RPT-ROUTINE-001",
+  "patient_id": "PT-1001",
+  "report_type": "Annual Physical",
+  "encounter_date": "2026-08-01",
+  "author": "Dr. Angela Reyes",
+  "chief_complaint": "Routine annual check-up, no acute complaints.",
+  "history": "No significant past medical history. Non-smoker.",
+  "narrative": "Patient presents for a routine annual physical exam. Vital signs stable. No new complaints reported. Physical exam unremarkable.",
+  "diagnoses": ["Health maintenance exam"],
+  "labs": [
+    {"name": "Glucose", "value": 90, "unit": "mg/dL", "reference_low": 70, "reference_high": 99, "critical_low": 40, "critical_high": 500},
+    {"name": "Potassium", "value": 4.2, "unit": "mmol/L", "reference_low": 3.5, "reference_high": 5.0, "critical_low": 2.5, "critical_high": 6.0},
+    {"name": "Hemoglobin", "value": 13.8, "unit": "g/dL", "reference_low": 12.0, "reference_high": 16.0, "critical_low": 7.0, "critical_high": 20.0}
+  ],
+  "medications": ["Multivitamin"],
+  "allergies": ["None known"],
+  "follow_up": "Return in 12 months for next annual exam."
+}

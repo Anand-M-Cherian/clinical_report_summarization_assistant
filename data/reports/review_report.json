@@ -1,0 +1,18 @@
+{
+  "report_id": "RPT-REVIEW-001",
+  "patient_id": "PT-1003",
+  "report_type": "Follow-up Visit",
+  "encounter_date": "2026-08-10",
+  "author": "Dr. Michael Chen",
+  "chief_complaint": "Increased thirst and fatigue over the past two weeks.",
+  "history": "Type 2 diabetes mellitus, diagnosed 3 years ago, diet-controlled.",
+  "narrative": "Patient reports increased thirst, frequent urination, and fatigue over the past two weeks. No chest pain, no shortness of breath. Physical exam notable for dry mucous membranes.",
+  "diagnoses": ["Type 2 diabetes mellitus"],
+  "labs": [
+    {"name": "Glucose", "value": 150, "unit": "mg/dL", "reference_low": 70, "reference_high": 99, "critical_low": 40, "critical_high": 500},
+    {"name": "Potassium", "value": 4.0, "unit": "mmol/L", "reference_low": 3.5, "reference_high": 5.0, "critical_low": 2.5, "critical_high": 6.0}
+  ],
+  "medications": ["Metformin 500mg twice daily"],
+  "allergies": ["Penicillin"],
+  "follow_up": "Recheck fasting glucose and HbA1c in 2 weeks; consider medication adjustment."
+}

@@ -1,0 +1,18 @@
+{
+  "report_id": "RPT-CRITICAL-001",
+  "patient_id": "PT-1004",
+  "report_type": "Emergency Department Visit",
+  "encounter_date": "2026-08-12",
+  "author": "Dr. Sarah Kim",
+  "chief_complaint": "Muscle weakness and palpitations.",
+  "history": "Chronic kidney disease stage 3, hypertension.",
+  "narrative": "Patient presents with acute muscle weakness and palpitations. ECG shows peaked T waves. Labs drawn urgently.",
+  "diagnoses": ["Chronic kidney disease", "Hyperkalemia"],
+  "labs": [
+    {"name": "Potassium", "value": 6.5, "unit": "mmol/L", "reference_low": 3.5, "reference_high": 5.0, "critical_low": 2.5, "critical_high": 6.0},
+    {"name": "Creatinine", "value": 2.1, "unit": "mg/dL", "reference_low": 0.6, "reference_high": 1.2, "critical_low": 0.2, "critical_high": 6.0}
+  ],
+  "medications": ["Lisinopril 10mg daily"],
+  "allergies": ["None known"],
+  "follow_up": "Immediate evaluation for hyperkalemia management."
+}

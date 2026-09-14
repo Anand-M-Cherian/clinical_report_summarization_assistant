@@ -1,0 +1,17 @@
+{
+  "report_id": "RPT-INCOMPLETE-001",
+  "patient_id": "PT-1002",
+  "report_type": "Urgent Care Visit",
+  "encounter_date": "2026-08-05",
+  "author": "",
+  "chief_complaint": "Patient reports fatigue.",
+  "history": "",
+  "narrative": "",
+  "diagnoses": [],
+  "labs": [
+    {"name": "Sodium", "value": 138, "unit": "mmol/L", "reference_low": 135, "reference_high": 145, "critical_low": 120, "critical_high": 160}
+  ],
+  "medications": [],
+  "allergies": [],
+  "follow_up": ""
+}

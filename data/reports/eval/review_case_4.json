@@ -1,0 +1,17 @@
+{
+  "report_id": "EVAL-REVIEW-004",
+  "patient_id": "PT-2004",
+  "report_type": "Follow-up Visit",
+  "encounter_date": "2026-07-08",
+  "author": "Dr. Sarah Kim",
+  "chief_complaint": "Routine follow-up for chronic kidney disease.",
+  "history": "Chronic kidney disease stage 3, hypertension, on lisinopril.",
+  "narrative": "Patient presents for scheduled chronic kidney disease follow-up. No new symptoms reported. Blood pressure well controlled on current regimen.",
+  "diagnoses": ["Chronic kidney disease stage 3"],
+  "labs": [
+    {"name": "Creatinine", "value": 1.6, "unit": "mg/dL", "reference_low": 0.6, "reference_high": 1.2, "critical_low": 0.2, "critical_high": 6.0}
+  ],
+  "medications": ["Lisinopril 10mg daily"],
+  "allergies": ["None known"],
+  "follow_up": "Recheck creatinine and eGFR in 3 months; continue current regimen."
+}

@@ -1,0 +1,17 @@
+{
+  "report_id": "EVAL-REVIEW-002",
+  "patient_id": "PT-2002",
+  "report_type": "Follow-up Visit",
+  "encounter_date": "2026-07-03",
+  "author": "Dr. Priya Nair",
+  "chief_complaint": "Mild leg cramps for several days.",
+  "history": "Hypertension on hydrochlorothiazide.",
+  "narrative": "Patient reports intermittent leg cramps over the past several days, no chest pain or palpitations. Physical exam notable for mild generalized weakness.",
+  "diagnoses": ["Hypertension"],
+  "labs": [
+    {"name": "Potassium", "value": 3.2, "unit": "mmol/L", "reference_low": 3.5, "reference_high": 5.0, "critical_low": 2.5, "critical_high": 6.0}
+  ],
+  "medications": ["Hydrochlorothiazide 25mg daily"],
+  "allergies": ["None known"],
+  "follow_up": "Recheck potassium in 1-2 weeks and consider dietary potassium counseling."
+}

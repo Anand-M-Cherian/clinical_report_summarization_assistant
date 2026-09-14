@@ -1,0 +1,27 @@
+[
+  {
+    "report_path": "data/reports/eval/review_case_1.json",
+    "ground_truth_recommendation": "Recheck fasting glucose and HbA1c within 1-2 weeks, review medication adherence and diet, and consider adjusting the metformin regimen if hyperglycemia persists. Escalate sooner if symptoms of hyperglycemia worsen.",
+    "expected_guideline_source": "clinical_summary_safety.md"
+  },
+  {
+    "report_path": "data/reports/eval/review_case_2.json",
+    "ground_truth_recommendation": "Recheck serum potassium within 1-2 weeks given the mild hypokalemia likely related to thiazide diuretic use, provide dietary potassium counseling, and consider a diuretic dose review if the abnormality persists.",
+    "expected_guideline_source": "clinical_summary_safety.md"
+  },
+  {
+    "report_path": "data/reports/eval/review_case_3.json",
+    "ground_truth_recommendation": "Order iron studies (ferritin, iron, TIBC) to evaluate for iron-deficiency anemia, recheck hemoglobin in about 4 weeks, and monitor for worsening symptoms such as increasing shortness of breath.",
+    "expected_guideline_source": "clinical_summary_safety.md"
+  },
+  {
+    "report_path": "data/reports/eval/review_case_4.json",
+    "ground_truth_recommendation": "Continue current chronic kidney disease management, recheck creatinine and eGFR at the next scheduled interval, and monitor for any acute worsening given the mildly elevated creatinine relative to baseline.",
+    "expected_guideline_source": "clinical_summary_safety.md"
+  },
+  {
+    "report_path": "data/reports/eval/review_case_5.json",
+    "ground_truth_recommendation": "Order a free T4 level and repeat TSH in 4-6 weeks to confirm suspected hypothyroidism, and consider an endocrinology referral if the diagnosis is confirmed.",
+    "expected_guideline_source": "clinical_summary_safety.md"
+  }
+]
