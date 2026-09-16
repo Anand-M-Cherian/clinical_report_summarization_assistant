@@ -39,6 +39,33 @@ def _split_finding(entry: str) -> tuple[str, str]:
     return entry.strip(), ""
 
 
+def _interrupt_payload(graph, result: dict, config: dict) -> dict | None:
+    interrupts = result.get("__interrupt__", [])
+    if interrupts:
+        return interrupts[0].value
+
+    snapshot = graph.get_state(config)
+    for task in snapshot.tasks:
+        if task.interrupts:
+            return task.interrupts[0].value
+    return None
+
+
+def _workflow_error_message(exc: Exception) -> str:
+    message = str(exc)
+    if "GenerateRequestsPerDay" in message or "PerDay" in message:
+        return (
+            "The Gemini daily API quota is exhausted. Try again after the "
+            "quota resets or use an API key with available quota."
+        )
+    if "no longer available" in message or "NOT_FOUND" in message:
+        return (
+            "The configured Gemini model is unavailable. Set GEMINI_MODEL "
+            "to a model supported by your Google AI project."
+        )
+    return f"Could not generate the requested output: {exc}"
+
+
 def _render_final_output(final_output: dict, full_state: dict) -> None:
     if final_output.get("status") == "needs_information":
         st.warning("Report is incomplete — additional information is required.")
@@ -100,7 +127,10 @@ def render_run_report_tab() -> None:
     if choice == "Upload custom JSON":
         uploaded = st.file_uploader("Upload a report JSON file", type=["json"])
         if uploaded is not None:
-            report_dict = json.loads(uploaded.read().decode("utf-8"))
+            try:
+                report_dict = json.loads(uploaded.read().decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                st.error(f"Could not read the uploaded JSON report: {exc}")
     else:
         report_dict = json.loads(Path(choice).read_text(encoding="utf-8"))
 
@@ -121,20 +151,20 @@ def render_run_report_tab() -> None:
                 {"report": report_dict, "audit": [], "errors": []}, config
             )
         except Exception as exc:
-            st.error(
-                "Could not generate summary — LLM call failed after 3 attempts. "
-                f"See error details below.\n\n{exc}"
-            )
+            st.error(_workflow_error_message(exc))
             st.session_state.pop("pending_interrupt", None)
         else:
-            if "__interrupt__" in result:
+            interrupt_payload = _interrupt_payload(graph, result, config)
+            if interrupt_payload is not None:
                 st.session_state["pending_interrupt"] = {
-                    "payload": result["__interrupt__"][0].value,
+                    "payload": interrupt_payload,
                     "config": config,
                 }
-            else:
+            elif "final_output" in result:
                 st.session_state.pop("pending_interrupt", None)
                 _render_final_output(result["final_output"], result)
+            else:
+                st.error("The workflow stopped without producing an output.")
 
     pending = st.session_state.get("pending_interrupt")
     if pending:

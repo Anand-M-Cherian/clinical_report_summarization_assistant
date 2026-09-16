@@ -19,7 +19,7 @@ from ragas.metrics import (
 )
 from ragas.run_config import RunConfig
 
-# Tuned for a PAID gemini-2.5-flash tier, not the free tier. The free tier's
+# Tuned for a paid Gemini tier, not the free tier. The free tier's
 # 5 requests/minute cap needed max_workers=1 with a long, patient backoff
 # (max_retries=20, max_wait=90) to avoid exhausting retries and returning
 # NaN scores; billing removes that per-minute ceiling, so moderate
@@ -209,6 +209,7 @@ def main() -> None:
         llm=ragas_llm,
         embeddings=ragas_embeddings,
         run_config=RAGAS_RUN_CONFIG,
+        raise_exceptions=True,
     )
     recommendation_df = recommendation_result.to_pandas()
 
@@ -219,6 +220,7 @@ def main() -> None:
         llm=ragas_llm,
         embeddings=ragas_embeddings,
         run_config=RAGAS_RUN_CONFIG,
+        raise_exceptions=True,
     )
     summary_df = summary_result.to_pandas()
 
