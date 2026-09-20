@@ -12,12 +12,20 @@ from ragas import evaluate
 from ragas.embeddings import LangchainEmbeddingsWrapper
 from ragas.llms import LangchainLLMWrapper
 from ragas.metrics import (
-    answer_relevancy,
+    AnswerRelevancy,
     context_precision,
     context_recall,
     faithfulness,
 )
 from ragas.run_config import RunConfig
+
+# answer_relevancy's default strictness=3 asks the LLM for 3 candidate
+# questions in one call (n=3), which gemini-3.6-flash rejects outright
+# ("Multiple candidates is not enabled for this model"). strictness=1 keeps
+# the metric working across models that don't support multi-candidate
+# generation, at the cost of averaging over only one generated question
+# instead of three.
+answer_relevancy = AnswerRelevancy(strictness=1)
 
 # Tuned for a paid Gemini tier, not the free tier. The free tier's
 # 5 requests/minute cap needed max_workers=1 with a long, patient backoff
@@ -49,6 +57,15 @@ THRESHOLDS = {
 SECONDS_BETWEEN_CASES = 15
 RATE_LIMIT_RETRY_WAIT_SECONDS = 65
 MAX_CASE_ATTEMPTS = 3
+
+# A single ragas faithfulness judge call is not reliable at the per-case
+# level, confirmed across two different Gemini models: gemini-3.6-flash
+# scored the exact same (question, answer, contexts) tuple 0.25 in one call
+# and 1.0 in another, and gemini-3.5-flash scored a near-verbatim-grounded
+# response 0.0 on a single call. answer_relevancy/context_precision/
+# context_recall showed no such instability across separate full runs, so
+# only faithfulness is scored multiple times and averaged per case.
+FAITHFULNESS_JUDGE_CALLS = 3
 
 
 def _build_query(report: dict, clinical_findings: list[dict]) -> str:
@@ -137,6 +154,38 @@ def _build_summary_dataset(runs: list[dict]) -> Dataset:
     return Dataset.from_dict(rows)
 
 
+def _score_faithfulness_averaged(
+    dataset: Dataset,
+    llm: LangchainLLMWrapper,
+    embeddings: LangchainEmbeddingsWrapper,
+    run_config: RunConfig,
+    n: int = FAITHFULNESS_JUDGE_CALLS,
+):
+    """Score faithfulness N times and average per case, instead of trusting a
+    single judge call. Returns (averaged_per_case_scores, base_df), where
+    base_df carries the non-metric columns (user_input/retrieved_contexts/
+    response, etc.) from the first run for building the per-case table.
+    """
+    base_df = None
+    score_runs = []
+    for _ in range(n):
+        result = evaluate(
+            dataset,
+            metrics=[faithfulness],
+            llm=llm,
+            embeddings=embeddings,
+            run_config=run_config,
+            raise_exceptions=True,
+        )
+        df = result.to_pandas()
+        if base_df is None:
+            base_df = df.drop(columns=["faithfulness"])
+        score_runs.append(df["faithfulness"])
+
+    averaged = sum(score_runs) / n
+    return averaged, base_df
+
+
 def _print_table(title: str, per_case_scores: list[dict]) -> None:
     print(f"\n=== {title} — per case ===")
     if not per_case_scores:
@@ -205,24 +254,23 @@ def main() -> None:
     recommendation_dataset = _build_recommendation_dataset(cases, runs)
     recommendation_result = evaluate(
         recommendation_dataset,
-        metrics=[faithfulness, answer_relevancy, context_precision, context_recall],
+        metrics=[answer_relevancy, context_precision, context_recall],
         llm=ragas_llm,
         embeddings=ragas_embeddings,
         run_config=RAGAS_RUN_CONFIG,
         raise_exceptions=True,
     )
     recommendation_df = recommendation_result.to_pandas()
+    recommendation_faithfulness, _ = _score_faithfulness_averaged(
+        recommendation_dataset, ragas_llm, ragas_embeddings, RAGAS_RUN_CONFIG
+    )
+    recommendation_df["faithfulness"] = recommendation_faithfulness
 
     summary_dataset = _build_summary_dataset(runs)
-    summary_result = evaluate(
-        summary_dataset,
-        metrics=[faithfulness],
-        llm=ragas_llm,
-        embeddings=ragas_embeddings,
-        run_config=RAGAS_RUN_CONFIG,
-        raise_exceptions=True,
+    summary_faithfulness, summary_df = _score_faithfulness_averaged(
+        summary_dataset, ragas_llm, ragas_embeddings, RAGAS_RUN_CONFIG
     )
-    summary_df = summary_result.to_pandas()
+    summary_df["faithfulness"] = summary_faithfulness
 
     recommendation_per_case = recommendation_df.to_dict(orient="records")
     summary_per_case = summary_df.to_dict(orient="records")
