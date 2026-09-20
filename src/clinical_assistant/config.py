@@ -24,7 +24,7 @@ def _load_settings() -> Settings:
         )
     return Settings(
         google_api_key=google_api_key,
-        model=os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
+        model=os.environ.get("GEMINI_MODEL", "gemini-3.6-flash"),
         log_level=os.environ.get("CLINICAL_ASSISTANT_LOG_LEVEL", "INFO"),
     )
 

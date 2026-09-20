@@ -114,9 +114,16 @@ def reconcile_outputs(
             )
             dropped_findings_recovered.append(finding.code)
 
+    report_summary_text = summary.overview + "\n\n" + "\n".join(
+        f"- {p}" for p in summary.key_points
+    )
+    recommendation_text = recommendation.overview + "\n\n" + "\n".join(
+        f"- {a}" for a in recommendation.action_items
+    )
+
     return ReconciledOutput(
-        report_summary=summary.report_summary,
+        report_summary=report_summary_text,
         abnormal_findings=abnormal_findings,
-        recommendation=recommendation.recommendation,
+        recommendation=recommendation_text,
         dropped_findings_recovered=dropped_findings_recovered,
     )

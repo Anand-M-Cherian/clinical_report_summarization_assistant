@@ -57,12 +57,14 @@ class GuidelineEvidence(BaseModel):
 
 
 class SummaryOutput(BaseModel):
-    report_summary: str
+    overview: str
+    key_points: list[str]
     abnormal_findings: list[str]
 
 
 class RecommendationOutput(BaseModel):
-    recommendation: str
+    overview: str
+    action_items: list[str]
     guideline_citations: list[str]
 
 

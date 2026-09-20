@@ -101,6 +101,42 @@ passed comfortably (faithfulness 0.75, context_precision/recall 1.0),
 consistent with this being a metric-construction artifact rather than a
 genuine relevance problem.
 
+**Known limitation — a single ragas `faithfulness` judge call is unreliable,
+regardless of which Gemini model is doing the judging.** This was confirmed
+across two different models, ruling out "switch models" as a fix — the
+instability is in judge-call variance, not in generation quality or any one
+model's quirks:
+
+- **`gemini-3.6-flash`**: three consecutive eval runs against identical code
+  and reports scored overall Recommendation-agent faithfulness at 0.710,
+  0.538, and 0.608 — a ~0.17 swing with nothing else changing. Re-scoring one
+  exact `(question, answer, contexts)` tuple in isolation — the diabetes
+  scenario, byte-for-byte identical input — gave 0.25 inside a full eval run
+  and 1.0 five minutes later on its own, with a LangChain debug trace
+  confirming the claim decomposition itself was fine (it converts imperative
+  `action_items` bullets like "Review current medication dosing." into
+  proper declarative statements on its own); only the per-statement verdicts
+  changed between calls.
+- **`gemini-3.5-flash`**: the hypothyroidism scenario's response — "Order a
+  free T4 level. Repeat TSH in 4-6 weeks. Consider an endocrinology referral
+  if the diagnosis is confirmed." — is a near-verbatim restatement of the
+  retrieved guideline text ("For suspected hypothyroidism with elevated TSH,
+  order a free T4 level and repeat TSH in 4-6 weeks, and consider an
+  endocrinology referral if the diagnosis is confirmed.") yet scored
+  `faithfulness: 0.0` on a single judge call.
+
+`answer_relevancy`/`context_precision`/`context_recall` showed no comparable
+instability across separate full runs on different models, so only
+`faithfulness` needed a fix. The mitigation now in place is **not** a model
+swap — it's averaging `FAITHFULNESS_JUDGE_CALLS = 3` independent judge calls
+per case (`evals/run_ragas_eval.py`'s `_score_faithfulness_averaged`), for
+both the Recommendation and Summary datasets, before computing the overall
+average. This doesn't eliminate judge noise, but it substantially reduces
+the odds that a single unlucky (or lucky) call decides a case's score. Still
+treat a `faithfulness` result close to the 0.7 threshold as a signal to
+spot-check the flagged case against its retrieved `contexts` rather than a
+final verdict on its own.
+
 ## Challenges faced
 
 - **Keeping critical findings out of any prose path.** The design explicitly

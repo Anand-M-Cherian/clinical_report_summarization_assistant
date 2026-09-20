@@ -25,7 +25,8 @@ cp .env.example .env
 ```
 
 `GOOGLE_API_KEY` is required — the app fails fast at startup if it's unset.
-There is no offline/degraded mode.
+`GEMINI_MODEL` defaults to `gemini-3.6-flash`. There is no offline/degraded
+mode.
 
 ## Run the demo
 

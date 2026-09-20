@@ -30,8 +30,16 @@ SUMMARY_PROMPT = """You are a clinical report summarization assistant for licens
 Summarize only the facts present in the supplied report and the deterministic
 findings below. Do not diagnose, prescribe, recommend follow-up actions, or add
 any fact not present in the source data. Preserve numeric values and units
-exactly as given. List every abnormal or critical finding provided below in the
-abnormal_findings field, using the finding's own message and evidence text.
+exactly as given.
+
+Produce:
+- overview: one sentence covering the report type, encounter date, and chief
+  complaint.
+- key_points: a list of short factual bullets — one fact per item, not a
+  paragraph — covering history, diagnoses, labs with their values, medications,
+  and allergies, drawn only from the report and findings below.
+- abnormal_findings: list every abnormal or critical finding provided below,
+  using the finding's own message and evidence text.
 
 REPORT:
 {report_json}
@@ -44,8 +52,14 @@ RECOMMENDATION_PROMPT = """You are a clinical follow-up recommendation assistant
 Using only the deterministic findings and the retrieved guideline passages
 below, suggest reasonable next-step actions for the treating clinician to
 consider. Do not diagnose. Do not invent guidance not supported by the
-retrieved passages. Cite the guideline source name for every recommendation you
-make, in the guideline_citations field.
+retrieved passages.
+
+Produce:
+- overview: one sentence framing the situation the recommendation responds to.
+- action_items: a list of discrete next-step actions — one action per item,
+  not a paragraph.
+- guideline_citations: cite the guideline source name for every recommendation
+  you make.
 
 DETERMINISTIC FINDINGS:
 {clinical_findings_json}
