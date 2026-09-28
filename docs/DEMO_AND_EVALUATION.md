@@ -21,8 +21,10 @@ summarization or recommendation agent; they go straight to a human via
 `human_interrupt`, which pauses the graph until a clinician submits an
 acknowledgment.
 
-For non-critical reports, `rag_agent` retrieves guideline passages (Chroma +
-`all-MiniLM-L6-v2` sentence-transformer embeddings over `data/guidelines/`).
+For non-critical reports, `rag_agent` retrieves guideline passages from
+`data/guidelines/` using hybrid search: dense retrieval (Chroma +
+`all-MiniLM-L6-v2` sentence-transformer embeddings) and lexical BM25, fused by
+reciprocal rank fusion (see [Hybrid retrieval](#hybrid-retrieval) below).
 Only `recommendation_agent` consumes that retrieved evidence — `summary_agent`
 only ever sees the report and the deterministic findings, so it cannot cite
 guidance it wasn't given. `reconciler` is rule-based: it checks that every
@@ -125,17 +127,131 @@ model's quirks:
   endocrinology referral if the diagnosis is confirmed.") yet scored
   `faithfulness: 0.0` on a single judge call.
 
-`answer_relevancy`/`context_precision`/`context_recall` showed no comparable
-instability across separate full runs on different models, so only
-`faithfulness` needed a fix. The mitigation now in place is **not** a model
-swap — it's averaging `FAITHFULNESS_JUDGE_CALLS = 3` independent judge calls
+An earlier version of this section said `answer_relevancy`/
+`context_precision`/`context_recall` showed no comparable instability, so
+only `faithfulness` needed a fix. **That is not true for `context_precision`.**
+During the hybrid-retrieval work, case 2 (hypokalemia) scored
+`context_precision` 1.0 in one run and 0.583 in three others, with the same
+three chunks retrieved in the same order every time. `context_precision` is
+also judged by the LLM (it asks whether each retrieved chunk was useful), so
+it carries the same kind of judge noise, and per-case values should not be
+read as exact. The faithfulness mitigation below has not been applied to it.
+
+The faithfulness mitigation now in place is **not** a model swap — it's
+averaging `FAITHFULNESS_JUDGE_CALLS = 3` independent judge calls
 per case (`evals/run_ragas_eval.py`'s `_score_faithfulness_averaged`), for
 both the Recommendation and Summary datasets, before computing the overall
-average. This doesn't eliminate judge noise, but it substantially reduces
-the odds that a single unlucky (or lucky) call decides a case's score. Still
-treat a `faithfulness` result close to the 0.7 threshold as a signal to
-spot-check the flagged case against its retrieved `contexts` rather than a
-final verdict on its own.
+average. This reduces judge noise but does not remove it. Four eval runs on
+identical code, with 3-call averaging in place, scored overall
+Recommendation-agent faithfulness at 0.612, 0.725, 0.623 and 0.677, a 0.113
+spread. Single cases varied far more: case 2 ranged from 0.374 to 0.768 and
+case 5 from 0.333 to 0.714. Treat a `faithfulness` result close to the 0.7
+threshold as a signal to spot-check the flagged case against its retrieved
+`contexts` rather than a final verdict on its own. Compare changes across
+several runs, not one.
+
+## Hybrid retrieval
+
+`GuidelineRetriever` (`src/clinical_assistant/rag.py`) was moved from
+dense-only search to hybrid search. Its interface did not change:
+`rag_agent` still calls `retriever.search(query, top_k=3)`.
+
+- **Chunking.** Guideline files are split on markdown headings, so each
+  chunk keeps its section name. Any section longer than 800 characters is
+  split again with LangChain's `RecursiveCharacterTextSplitter` (90-character
+  overlap), and every piece keeps the parent heading.
+- **Two retrievers.** Dense retrieval (Chroma embeddings) and lexical BM25
+  (`rank-bm25`, over lowercased alphanumeric tokens) each return their top 15
+  candidates. Both index the same chunk list, built once per construction.
+- **Fusion.** LangChain's `EnsembleRetriever` merges the two lists with
+  reciprocal rank fusion at equal 0.5/0.5 weights. `GuidelineEvidence.score`
+  is now `1/(rank+1)` of the fused order, so it can't be compared with the
+  older cosine-based scores.
+- **Embedding cache.** The Chroma collection stores a SHA-256 hash of every
+  guideline file's name and content, plus the embedding model name and the
+  chunking settings. If the hash matches on startup, the stored embeddings
+  are reused; otherwise they are rebuilt. BM25 is cheap and is rebuilt every
+  time.
+
+**Verified:**
+
+- **Cache hit/miss.** Two back-to-back constructions printed `rebuilding
+  embeddings` and then `reusing cached embeddings` with the same hash.
+  Editing a guideline file changed the hash and triggered a rebuild.
+- **Chunking.** On the original guidelines, only "Condition-Specific
+  Follow-Up Actions" (1,124 characters) exceeded the limit, and it was split
+  into two pieces (709 and 413 characters). That split put the diabetes and
+  hypokalemia guidance in one chunk. Per-condition `###` sub-headings were
+  then added, so each of the five conditions is its own chunk (11 chunks in
+  total), and the size fallback no longer fires on the current files.
+- **Fusion.** A paraphrased diabetes query still returned the relevant
+  sections. An exact-term query for "hydrochlorothiazide" ranked the
+  hypokalemia guidance first, but dense-only search already did. On a corpus
+  this small, BM25 showed no measurable gain.
+- **No retrieval regression.** Average `context_precision` stayed at 0.917
+  and `context_recall` at 1.0. Cases 1, 3, 4 and 5 kept `context_precision`
+  1.0; case 2 stayed at 0.583 (apart from the one noisy 1.0 described
+  above). Faithfulness stayed within judge noise on cases 1, 2, 4 and 5;
+  case 3 is covered below.
+
+**Why case 2 did not improve.** For this report, all three retrievers
+(dense, BM25 and fused) rank the hypokalemia chunk third, behind the two
+general sections on abnormal lab values and escalation. The query `rag_agent`
+builds uses the chief complaint, narrative, diagnoses and finding messages.
+It never includes `medications` or `history`, which is where
+"hydrochlorothiazide" appears, so BM25 has no drug name to match. Widening
+the query was left for later. `evals/run_ragas_eval.py` has its own copy of
+that query logic (`_build_query`), so both places would need the change.
+
+**Known limitation.** Each retriever's candidate pool is sized for the
+default `top_k=3`. A caller asking for more results would not get a larger
+pool (marked `TODO` in `rag.py`).
+
+### Case 3: suspected regression, not confirmed
+
+Case 3 (suspected iron-deficiency anemia) scored Recommendation faithfulness
+0.800 in the one run before the per-condition sub-headings were added, and
+0.567, 0.600, 0.381 and 0.611 in four runs after. None of the four reaches
+the earlier score. A plausible cause is that the anemia guidance is now a
+short standalone chunk (258 characters), leaving the judge less supporting
+text for some claims.
+
+It is reported as suspected rather than confirmed because the "before" side
+is a single run, and single-case faithfulness has been seen to swing by
+about 0.4 on identical input (case 2: 0.374 to 0.768). One high draw of
+0.800 could produce this gap by itself. Confirming it would need several
+runs with the sub-headings reverted, which was not done within this
+project's budget. Retrieval for case 3 was unaffected: `context_precision`
+and `context_recall` stayed at 1.0 in every run.
+
+### Hypokalemia guideline content fix
+
+The hypokalemia sub-section of `clinical_summary_safety.md` was rewritten to
+be clinically specific rather than generic. It now defines hypokalemia
+(serum potassium below 3.5 mmol/L; mild is typically 3.0-3.4 mmol/L). It
+names thiazide diuretics such as hydrochlorothiazide, commonly prescribed for
+hypertension, as a frequent cause, and lists typical symptoms (leg cramps,
+fatigue, generalized weakness). The follow-up actions are unchanged, and it
+adds when to seek prompt clinician review. No other section was edited.
+
+Result from one eval run:
+
+- **Retrieval order changed.** For case 2, the hypokalemia chunk is now
+  retrieved first, ahead of the two general sections, where it was third
+  before. Retrieval is deterministic, so this change is real, not judge
+  noise. The query now shares specific terms with the chunk: potassium,
+  mmol/L, hypertension, weakness.
+- **Scores did not clearly improve.** Case 2 scored `context_precision` 1.0
+  and `faithfulness` 0.667. Both fall inside the ranges already seen on
+  identical input (0.583 to 1.0 and 0.374 to 0.768), so the metrics alone
+  can't show an improvement. `context_precision` 1.0 is the expected value
+  when the most relevant chunk ranks first, but a noisy run has also
+  produced 1.0 before.
+- **Overall.** Averages for this run were `context_precision` 1.0,
+  `context_recall` 1.0, Recommendation faithfulness 0.669 and Summary
+  faithfulness 1.0. Case 3 scored faithfulness 0.683, still below its
+  single pre-sub-heading score of 0.800. This run used a changed corpus, so
+  it isn't counted among the four comparable runs above.
 
 ## Challenges faced
 
