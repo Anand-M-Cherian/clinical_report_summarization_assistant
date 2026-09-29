@@ -13,13 +13,6 @@ from clinical_assistant.workflow import build_workflow
 REPORTS_DIR = Path("data/reports")
 EVAL_RESULTS_PATH = Path("data/runtime/eval_results.json")
 
-THRESHOLDS = {
-    "faithfulness": 0.7,
-    "context_precision": 0.6,
-    "context_recall": 0.6,
-    "answer_relevancy": 0.6,
-}
-
 st.set_page_config(page_title="Clinical Report Summarization Assistant", layout="wide")
 
 
@@ -235,14 +228,7 @@ def render_evaluation_tab() -> None:
     averages = data.get("averages", {})
     cols = st.columns(len(averages) or 1)
     for col, (metric, value) in zip(cols, averages.items()):
-        # "summary_faithfulness" (the Summary agent's own faithfulness score,
-        # kept separate from the Recommendation agent's "faithfulness" column)
-        # is checked against the same threshold as "faithfulness".
-        threshold_key = metric.removeprefix("summary_")
-        threshold = THRESHOLDS.get(threshold_key)
-        passed = threshold is not None and value >= threshold
-        badge = "✅ PASS" if passed else "❌ FAIL"
-        col.metric(label=f"{metric} ({badge})", value=f"{value:.2f}")
+        col.metric(label=metric, value=f"{value:.2f}")
 
 
 def main() -> None:
