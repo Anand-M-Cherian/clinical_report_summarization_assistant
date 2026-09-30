@@ -53,7 +53,12 @@ class GuidelineEvidence(BaseModel):
     source: str
     section: str
     text: str
-    score: float
+    score: float = Field(
+        description="A fused, rank-based relevance score (1/(rank+1) after RRF "
+        "fusion of dense and lexical retrieval) — not a raw cosine similarity or "
+        "BM25 score. Larger is more relevant; the absolute scale is not "
+        "comparable to pre-hybrid-search score values."
+    )
 
 
 class SummaryOutput(BaseModel):

@@ -28,24 +28,39 @@ tolerance for the abnormality.
 
 ## Condition-Specific Follow-Up Actions
 
+### Type 2 Diabetes with Elevated Glucose
+
 For type 2 diabetes mellitus with elevated glucose above the reference range,
 recheck fasting glucose and HbA1c within 1-2 weeks, and review metformin
 dosing and adherence before escalating to additional therapy.
 
-For mild hypokalemia in a patient on a thiazide diuretic such as
-hydrochlorothiazide, recheck serum potassium within 1-2 weeks, provide
-dietary potassium counseling, and consider reviewing the diuretic dose if the
-abnormality persists.
+### Hypokalemia on a Thiazide Diuretic
+
+Hypokalemia is a serum potassium below 3.5 mmol/L; mild hypokalemia is
+typically 3.0-3.4 mmol/L. Thiazide diuretics such as hydrochlorothiazide,
+commonly prescribed for hypertension, increase urinary potassium loss and are
+a frequent cause. Mild hypokalemia may be asymptomatic or present with muscle
+cramps (often in the legs), fatigue, or generalized weakness. For mild
+hypokalemia in a patient on a thiazide diuretic, recheck serum potassium
+within 1-2 weeks, provide dietary potassium counseling, and consider reviewing
+the diuretic dose if the abnormality persists. Palpitations, marked muscle
+weakness, or a potassium below 3.0 mmol/L warrant prompt clinician review.
+
+### Suspected Iron-Deficiency Anemia
 
 For suspected iron-deficiency anemia with low hemoglobin, order iron studies
 (ferritin, iron, and total iron-binding capacity), recheck hemoglobin in
 approximately 4 weeks, and monitor for worsening symptoms such as increasing
 fatigue or shortness of breath.
 
+### Chronic Kidney Disease with Elevated Creatinine
+
 For chronic kidney disease with mildly elevated creatinine, continue current
 chronic kidney disease management, recheck creatinine and eGFR at the next
 scheduled interval, and monitor for any acute worsening relative to the
 patient's baseline.
+
+### Suspected Hypothyroidism with Elevated TSH
 
 For suspected hypothyroidism with elevated TSH, order a free T4 level and
 repeat TSH in 4-6 weeks, and consider an endocrinology referral if the

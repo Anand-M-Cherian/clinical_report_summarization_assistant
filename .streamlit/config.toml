@@ -1,0 +1,4 @@
+[server]
+# Streamlit's watcher probes every module in sys.modules, which triggers
+# transformers' lazy imports (e.g. zoedepth -> torchvision) and spams tracebacks.
+fileWatcherType = "none"
